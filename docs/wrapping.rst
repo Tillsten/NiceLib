@@ -171,7 +171,7 @@ The available signature values are:
 'buf'
     The argument is a string buffer used for output. The C argument is a ``char`` pointer or array, into which the C-function writes a null-terminated string. This string is decoded using ``ffi.string()``, and added to the return values.
 
-    This is used for the common case of a C function which takes both a string buffer and its length as inputs, so that it doesn't overrun the buffer. As such, ``'buf'`` requires a corresponding ``'len'`` entry. The first ``'buf'``/``'arr'`` is matched with the first ``'len'`` and so forth. If you don't need to pass in a length parameter to the C-function, use ``'buf[n]'`` as described below.
+    This is used for the common case of a C function which takes both a string buffer and its length as inputs, so that it doesn't overrun the buffer. As such, ``'buf'`` requires a corresponding ``'len'`` entry. The first ``'buf'``/``'arr'`` is matched with the first ``'len'`` and so forth. If you don't need to pass in a length parameter to the C-function, use ``'buf[n]'`` as described below. If you don't need to pass in a length parameter to the C-function and the array length can vary, use ``in`` and pass in an array with the requiered shape.
 
     NiceLib will automatically create the buffer and pass it and the length parameter to the C-function. You simply receive the ``bytes``.
 
