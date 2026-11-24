@@ -1,5 +1,13 @@
 from util import local_fpath
-from nicelib.process import process_headers
+import pytest
+
+from nicelib.process import CPPTypedefAdder, process_headers
+from nicelib.parser.cpp_parser import CPPParser
+from pycparser import c_ast
+try:
+    from pycparser.plyparser import ParseError
+except ImportError:
+    from pycparser.c_parser import ParseError
 
 
 def test_exclude_sys_funcdefs():
@@ -24,3 +32,35 @@ def test_argnames():
 
     assert argnames['f_structa'] == ['a']
     assert argnames['f_structptra'] == ['a']
+
+
+def test_cpp_parser_handles_references_and_typed_enums():
+    tree = CPPParser().parse(
+        'typedef int Count; int get(Count& count); '
+        'enum Kind : unsigned int { KIND_VALUE = 1 };'
+    )
+
+    param_type = tree.ext[1].type.args.params[0].type
+    assert isinstance(param_type, c_ast.PtrDecl)
+    assert tree.ext[2].type.name == 'Kind'
+
+
+def test_cpp_typedef_adder_builds_ast_with_current_pycparser():
+    parser = CPPParser()
+    tree = parser.parse_chunk('struct Foo { int value; };')
+
+    tree = CPPTypedefAdder().hook(tree, parser.parse_chunk)
+
+    assert isinstance(tree.ext[0].type, c_ast.Typedef)
+    assert parser.parse_chunk('Foo bar;').ext[0].name == 'bar'
+
+
+def test_cpp_parser_parse_resets_scope_and_coordinates():
+    parser = CPPParser()
+    parser.parse('\ntypedef int Count;', filename='first.h')
+
+    tree = parser.parse('int value;', filename='second.h')
+
+    assert str(tree.ext[0].coord).startswith('second.h:1')
+    with pytest.raises(ParseError):
+        parser.parse('Count value;', filename='third.h')

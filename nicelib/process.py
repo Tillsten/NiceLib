@@ -20,7 +20,11 @@ from collections import OrderedDict, namedtuple, defaultdict, deque
 import ast
 from io import StringIO
 from .parser import cpp_parser, cpp_generator
-from pycparser import c_ast, plyparser
+from pycparser import c_ast
+try:
+    from pycparser.plyparser import ParseError
+except ImportError:
+    from pycparser.c_parser import ParseError
 import cffi
 import cffi.commontypes
 from .platform import PREDEF_MACRO_STR, REPLACEMENT_MAP, INCLUDE_DIRS
@@ -1368,7 +1372,7 @@ class Generator(object):
             log.debug("Parsing chunk '{}'".format(csource_chunk))
             try:
                 chunk_tree = self.parse(csource_chunk)
-            except plyparser.ParseError as e:
+            except ParseError as e:
                 msg = str(e)
                 lines = orig_chunk.splitlines()
                 if len(lines) < 20:
@@ -1380,7 +1384,7 @@ class Generator(object):
                 msg += ('\n\nIf you a developer wrapping a lib, you may need to clean up the '
                         'header source using hooks. See the documentation on processing headers '
                         'for more information.')
-                raise plyparser.ParseError(msg)
+                raise ParseError(msg)
 
             # HOOK: AST chunk
             for hook in self.ast_hooks:
@@ -1468,7 +1472,7 @@ class Generator(object):
                 except ConvertError as e:
                     warnings.warn(str(e))
 
-            except (plyparser.ParseError, AttributeError) as e:
+            except (ParseError, AttributeError) as e:
                 warnings.warn("Un-pythonable macro {}: {}".format(macro.name, str(e)))
 
         log.debug("  generated to {}".format(py_src))
@@ -1476,12 +1480,7 @@ class Generator(object):
 
     def parse(self, text, reset_file=False):
         """Reimplement CParser.parse to retain scope"""
-        if reset_file:
-            self.parser.clex.filename = '<generator>'
-            self.parser.clex.reset_lineno()
-        #self.parser._scope_stack = [dict()]
-        self.parser._last_yielded_token = None
-        return self.parser.cparser.parse(input=text, lexer=self.parser.clex, debug=0)
+        return self.parser.parse_chunk(text, reset_file=reset_file)
 
 
 def get_predef_macros():
@@ -1538,7 +1537,7 @@ def src_to_c_ast(source):
 
     try:
         tree = cparser.parse('int main(void){' + source + ';}')
-    except (plyparser.ParseError, AttributeError) as e:
+    except (ParseError, AttributeError) as e:
         raise ConvertError(e)
 
     expr_node = tree.ext[0].body.block_items[0]
@@ -2464,7 +2463,10 @@ class CPPTypedefAdder(TreeModifier):
             return node
         else:
             self.added_types.add(node.name)
-            typedecl_node = c_ast.TypeDecl(node.name, [], node)
+            if hasattr(c_ast.TypeDecl, 'align'):
+                typedecl_node = c_ast.TypeDecl(node.name, [], None, node)
+            else:
+                typedecl_node = c_ast.TypeDecl(node.name, [], node)
             return c_ast.Typedef(node.name, [], ['typedef'], typedecl_node)
 
     def visit_Enum(self, node):
