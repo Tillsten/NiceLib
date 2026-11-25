@@ -1,13 +1,10 @@
 from util import local_fpath
 import pytest
 
-from nicelib.process import CPPTypedefAdder, process_headers
+from nicelib.process import CPPTypedefAdder, process_headers, process_source
 from nicelib.parser.cpp_parser import CPPParser
 from pycparser import c_ast
-try:
-    from pycparser.plyparser import ParseError
-except ImportError:
-    from pycparser.c_parser import ParseError
+from pycparser.c_parser import ParseError as CParseError
 
 
 def test_exclude_sys_funcdefs():
@@ -45,6 +42,11 @@ def test_cpp_parser_handles_references_and_typed_enums():
     assert tree.ext[2].type.name == 'Kind'
 
 
+def test_process_source_adds_context_to_pycparser_errors():
+    with pytest.raises(CParseError, match='When parsing chunk'):
+        process_source('int invalid(;')
+
+
 def test_cpp_typedef_adder_builds_ast_with_current_pycparser():
     parser = CPPParser()
     tree = parser.parse_chunk('struct Foo { int value; };')
@@ -62,5 +64,5 @@ def test_cpp_parser_parse_resets_scope_and_coordinates():
     tree = parser.parse('int value;', filename='second.h')
 
     assert str(tree.ext[0].coord).startswith('second.h:1')
-    with pytest.raises(ParseError):
+    with pytest.raises(CParseError):
         parser.parse('Count value;', filename='third.h')

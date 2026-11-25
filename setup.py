@@ -29,7 +29,7 @@ with open(about_path) as f:
 
 install_requires = [
     'cffi>=1.5',
-    'pycparser',
+    'pycparser>=3.0',
 ]
 
 

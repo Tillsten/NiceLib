@@ -14,10 +14,7 @@ import ast
 from io import StringIO
 from .parser import cpp_parser, cpp_generator
 from pycparser import c_ast
-try:
-    from pycparser.plyparser import ParseError
-except ImportError:
-    from pycparser.c_parser import ParseError
+from pycparser.c_parser import ParseError as CParseError
 import cffi
 import cffi.commontypes
 from .platform import PREDEF_MACRO_STR, REPLACEMENT_MAP, INCLUDE_DIRS
@@ -1356,7 +1353,7 @@ class Generator(object):
             log.debug("Parsing chunk '{}'".format(csource_chunk))
             try:
                 chunk_tree = self.parse(csource_chunk)
-            except ParseError as e:
+            except CParseError as e:
                 msg = str(e)
                 lines = orig_chunk.splitlines()
                 if len(lines) < 20:
@@ -1368,7 +1365,7 @@ class Generator(object):
                 msg += ('\n\nIf you a developer wrapping a lib, you may need to clean up the '
                         'header source using hooks. See the documentation on processing headers '
                         'for more information.')
-                raise ParseError(msg)
+                raise CParseError(msg)
 
             # HOOK: AST chunk
             for hook in self.ast_hooks:
@@ -1456,7 +1453,7 @@ class Generator(object):
                 except ConvertError as e:
                     warnings.warn(str(e))
 
-            except (ParseError, AttributeError) as e:
+            except (CParseError, AttributeError) as e:
                 warnings.warn("Un-pythonable macro {}: {}".format(macro.name, str(e)))
 
         log.debug("  generated to {}".format(py_src))
@@ -1521,7 +1518,7 @@ def src_to_c_ast(source):
 
     try:
         tree = cparser.parse('int main(void){' + source + ';}')
-    except (ParseError, AttributeError) as e:
+    except (CParseError, AttributeError) as e:
         raise ConvertError(e)
 
     expr_node = tree.ext[0].body.block_items[0]
