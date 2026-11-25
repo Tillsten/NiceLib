@@ -1,24 +1,15 @@
 # -*- coding: utf-8 -*-
 # Copyright 2015-2019 Nate Bogdanowicz
-from __future__ import division, absolute_import, with_statement, print_function, unicode_literals
-
-from builtins import str, zip
-from past.builtins import basestring
-from future.utils import PY2, with_metaclass
 
 import re
 import sys
 import warnings
 import logging
-from inspect import isfunction
+from contextlib import suppress
+from inspect import getfullargspec, isfunction
 from collections import deque
 
-from .util import to_tuple, ChainMap, suppress
-
-if PY2:
-    from inspect import getargspec
-else:
-    from inspect import getfullargspec as getargspec
+from .util import to_tuple, ChainMap, string_types
 
 log = logging.getLogger(__name__)
 
@@ -528,7 +519,7 @@ class RetHandler(object):
         if hasattr(func, '__name__') and not self.__name__:
             self.__name__ = func.__name__
 
-        self.kwargs = set(getargspec(func).args[1:])
+        self.kwargs = set(getfullargspec(func).args[1:])
         return self
 
     def __repr__(self):
@@ -598,7 +589,7 @@ class NiceObjectMeta(type):
         log.info("Patching NiceObject subclass '%s'...", cls.__name__)
         if hasattr(cls, '_init_'):
             init = cls._init_
-            if isinstance(init, basestring):
+            if isinstance(init, string_types):
                 init = getattr(parent_lib, init)
             cls._init_func = staticmethod(init)
 
@@ -632,7 +623,7 @@ class NiceObjectMeta(type):
         return cls
 
 
-class NiceObject(with_metaclass(NiceObjectMeta, object)):
+class NiceObject(object, metaclass=NiceObjectMeta):
     """Base class for object-like mid-level library wrappers
 
     Attributes
@@ -686,8 +677,7 @@ class LibMethod(object):
         c_sig_str = '{}({})'.format(libfunc.c_name, libfunc.sig.args_c_str())
         self.__doc__ = sig_str + '\n\nOriginal C Function: ' + c_sig_str
 
-        if sys.version_info >= (3,3):
-            self._assign_signature()
+        self._assign_signature()
 
     def _assign_signature(self):
         from inspect import Parameter, Signature
@@ -776,7 +766,7 @@ class NiceObjectDef(object):
         self.attrs = attrs
         self.n_handles = n_handles
 
-        if not (init is None or isinstance(init, basestring)):
+        if not (init is None or isinstance(init, string_types)):
             raise TypeError("NiceObjectDef's `init` arg must be a string that names a wrapped "
                             "function. Got '{}' instead.".format(type(init).__name__))
         self.init = init
@@ -863,7 +853,7 @@ class LibMeta(type):
 
             elif name in ('_ret', '_ret_'):
                 # Have to handle separately, for backwards compat
-                if isinstance(value, basestring):
+                if isinstance(value, string_types):
                     log.info('...as a stringy ret flag')
                     raise ValueError("Can't use string as _ret_ flag")
                 elif isfunction(value):
@@ -966,7 +956,7 @@ class LibMeta(type):
 
     def _handle_base_flags(cls):
         ret = cls._base_flags.get('ret')
-        if isinstance(ret, basestring):
+        if isinstance(ret, string_types):
             cls._base_flags['ret'] = RetHandler(ret)
 
         if cls._ffi and not cls._base_flags['struct_maker']:
@@ -1020,7 +1010,7 @@ class LibMeta(type):
             c_argtypes = c_argtypes + ('...',)
 
         ret_handler = sig.flags['ret']
-        if isinstance(ret_handler, basestring):
+        if isinstance(ret_handler, string_types):
             ret_handler = cls._ret_handlers[ret_handler]
 
         try:
@@ -1125,8 +1115,7 @@ class LibFunction(object):
         c_sig_str = '{}({})'.format(c_name, sig.args_c_str())
         self.__doc__ = sig_str + '\n\nOriginal C Function: ' + c_sig_str
 
-        if sys.version_info >= (3,3):
-            self._assign_signature()
+        self._assign_signature()
 
     def _assign_signature(self):
         from inspect import Parameter, Signature
@@ -1144,12 +1133,8 @@ class LibFunction(object):
         return self._call(args, kwds)
 
     def _call(self, args, kwds, niceobj=None):
-        if sys.version_info >= (3,3):
-            bound_args = self.__signature__.bind(*args, **kwds)
-            args = bound_args.args
-        elif kwds:
-            raise TypeError('Keyword args in LibFunctions are not supported for Python versions '
-                            'before 3.3')
+        bound_args = self.__signature__.bind(*args, **kwds)
+        args = bound_args.args
 
         check_num_args(self.name, len(args), self.sig.num_inargs, self.sig.variadic)
 
@@ -1192,7 +1177,7 @@ def check_num_args(func_name, num_args, num_req_args, is_variadic):
         raise TypeError(message)
 
 
-class NiceLib(with_metaclass(LibMeta, object)):
+class NiceLib(object, metaclass=LibMeta):
     """Base class for mid-level library wrappers
 
     Provides a nice interface for quickly defining mid-level library wrappers. You define a

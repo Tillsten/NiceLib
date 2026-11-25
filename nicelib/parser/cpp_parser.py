@@ -2,7 +2,6 @@
 # Copyright 2018 Nate Bogdanowicz
 
 # Modeled after pycparserext
-from __future__ import division
 
 from pycparser.c_parser import CParser
 from pycparser import c_ast

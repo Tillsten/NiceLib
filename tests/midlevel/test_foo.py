@@ -1,4 +1,3 @@
-import sys
 from nicelib import NiceLib, load_lib, Sig, NiceObject, ret_ignore, ret_return
 
 
@@ -31,8 +30,6 @@ def test_static_method():
 
 
 def test_kwargs():
-    if sys.version_info < (3,3):
-        return
     assert NiceFoo.subtract(7, b=5) == 2
     assert NiceFoo.subtract(a=7, b=5) == 2
     assert NiceFoo.subtract(b=5, a=7) == 2

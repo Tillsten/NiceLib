@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # Copyright 2016-2018 Nate Bogdanowicz
-from __future__ import print_function
 
 import os
 import os.path
@@ -53,7 +52,7 @@ def build_lib(header_info, lib_name, module_name, filedir, ignored_headers=(),
         points to an existing file, that file's directory is used. Usually you would pass the
         ``__file__`` attribute from your build module.
     ignored_headers : sequence of strs
-        Names of headers to ignore; ``#include``\s containing these will be skipped.
+        Names of headers to ignore; ``#include``\\s containing these will be skipped.
     ignore_system_headers : bool
         If True, skip inclusion of headers specified with angle brackets, e.g.
         ``#include <stdarg.h>`` Header files specified with double quotes are processed as ususal.

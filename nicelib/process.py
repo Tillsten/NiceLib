@@ -1,22 +1,15 @@
 # -*- coding: utf-8 -*-
 # Copyright 2016-2019 Nate Bogdanowicz
-from __future__ import unicode_literals, division, print_function
-from future import standard_library
-standard_library.install_aliases()
-from builtins import str
-from past.builtins import basestring
-from future.utils import PY2
 
 import re
-import sys
 import os.path
-from io import open  # Needed for opening as unicode, might be slow on Python 2
 import copy
 import warnings
 import logging
 import pickle as pkl
 from enum import Enum
 from collections import OrderedDict, namedtuple, defaultdict, deque
+from collections.abc import Sequence
 import ast
 from io import StringIO
 from .parser import cpp_parser, cpp_generator
@@ -28,16 +21,7 @@ except ImportError:
 import cffi
 import cffi.commontypes
 from .platform import PREDEF_MACRO_STR, REPLACEMENT_MAP, INCLUDE_DIRS
-from .util import handle_header_path
-
-if sys.version_info < (3,3):
-    from collections import Sequence
-else:
-    from collections.abc import Sequence
-
-# Faster than using future's range function, speeds up lexer significantly
-if PY2:
-    range = xrange
+from .util import handle_header_path, string_types
 
 log = logging.getLogger(__name__)
 cparser = cpp_parser.CPPParser()
@@ -157,7 +141,7 @@ class Token(object):
         return self.type is other_type and self.string == other_string
 
     def __eq__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, string_types):
             return self.string == other
         elif isinstance(other, TokenType):
             return self.type == other
@@ -1682,7 +1666,6 @@ def process_file(in_fname, out_fname, minify):
 
     with open('macros.py', 'w') as f:
         #f.writelines("{} = {}\n".format(name, val) for name, val in parser.macro_vals.items())
-        f.write("from builtins import int\n")
         for macro in parser.macros:
             if not macro.dependencies_satisfied:
                 f.write("# ")
@@ -1690,7 +1673,7 @@ def process_file(in_fname, out_fname, minify):
 
 
 def to_str_seq(arg):
-    return (arg,) if isinstance(arg, basestring) else arg
+    return (arg,) if isinstance(arg, string_types) else arg
 
 
 def process_headers(header_paths, predef_path=None, update_cb=None, ignored_headers=(),
@@ -1843,7 +1826,7 @@ def generate_bindings(header_info, outfile, prefix=(), add_ret_ignore=False, nic
         If True, automatically set the first argument of every NiceObject function to ``'in'``.
         True by default.
     """
-    if isinstance(outfile, basestring):
+    if isinstance(outfile, string_types):
         with open(outfile, 'w') as f:
             return generate_bindings(header_info, f, prefix, add_ret_ignore, niceobj_prefix,
                                      fill_handle, **kwds)
@@ -1855,7 +1838,7 @@ def generate_bindings(header_info, outfile, prefix=(), add_ret_ignore=False, nic
     _, _, tree = process_headers(header_paths, return_ast=True, **kwds)
     toplevel_sigs = []
     niceobj_sigs = defaultdict(list)
-    prefixes = (prefix, '') if isinstance(prefix, basestring) else prefix + ('',)
+    prefixes = (prefix, '') if isinstance(prefix, string_types) else prefix + ('',)
 
     for ext in tree.ext:
         if isinstance(ext, c_ast.Decl) and isinstance(ext.type, c_ast.FuncDecl):
@@ -1969,7 +1952,7 @@ def modify_pattern(tokens, pattern):
     def matches(token, target):
         if isinstance(target, TokenType):
             return token.type is target
-        elif isinstance(target, basestring):
+        elif isinstance(target, string_types):
             return token.string == target
         return False
 
@@ -1981,7 +1964,7 @@ def modify_pattern(tokens, pattern):
                     keep, target = next(p_it)
                 except StopIteration:
                     pattern_completed = True
-        elif isinstance(target, basestring) and target.startswith('~~') and target.endswith('~~'):
+        elif isinstance(target, string_types) and target.startswith('~~') and target.endswith('~~'):
             found_end = False
             right = target[2]
             left = {'}': '{', ')': '(', ']': '['}[right]
@@ -2201,7 +2184,7 @@ class ParseHelper(object):
 
         Raises StopIteration if we're already at the end of the token stream.
         """
-        if isinstance(tokens, basestring) or not isinstance(tokens, Sequence):
+        if isinstance(tokens, string_types) or not isinstance(tokens, Sequence):
             tokens = (tokens,)
         buf = []
 
@@ -2225,7 +2208,7 @@ class ParseHelper(object):
 
         Raises StopIteration if we're already at the end of the token stream.
         """
-        if isinstance(tokens, basestring) or not isinstance(tokens, Sequence):
+        if isinstance(tokens, string_types) or not isinstance(tokens, Sequence):
             tokens = (tokens,)
         buf = []
 

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 # Copyright 2016-2018 Nate Bogdanowicz
-from past.builtins import basestring
-
 import sys
 import os
 import os.path
@@ -9,15 +7,12 @@ import logging
 import warnings
 from fnmatch import fnmatch
 from ctypes.util import find_library
-from contextlib import contextmanager
+from collections import ChainMap
+from contextlib import suppress
 
 log = logging.getLogger(__name__)
 is_64bit = sys.maxsize > 2**32
-
-if sys.version_info < (3, 3):
-    from chainmap import ChainMap
-else:
-    from collections import ChainMap
+string_types = (str, bytes)
 
 
 def select_platform_value(platform_dict):
@@ -37,17 +32,7 @@ def select_platform_value(platform_dict):
 
 def to_tuple(value):
     """Convert value to a tuple, or if it is a string or dict, wrap it in a tuple"""
-    return (value,) if isinstance(value, (basestring, dict)) else tuple(value)
-
-
-# For Python 2 support
-@contextmanager
-def suppress(*exceptions):
-    """Context manager to suppress specified exceptions"""
-    try:
-        yield
-    except exceptions:
-        pass
+    return (value,) if isinstance(value, string_types + (dict,)) else tuple(value)
 
 
 def handle_header_path(path, basedir):
@@ -61,7 +46,7 @@ def handle_header_path(path, basedir):
     of strings indicating header paths. Optionally you may include a 'path' entry, which specifies
     a list of directories where the headers may be located.
     """
-    if isinstance(path, basestring):
+    if isinstance(path, string_types):
         if os.path.exists(path):
             return path, None
         else:

@@ -34,6 +34,8 @@ NiceLib is available on PyPI::
 
     $ pip install nicelib
 
+NiceLib requires Python 3.13 or newer.
+
 If you would like to use the development version, download and extract a zip of the source from our
 `GitHub page <https://github.com/mabuchilab/NiceLib>`_ or clone it using git. Now install::
 

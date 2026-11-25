@@ -12,12 +12,11 @@ description = ('A package for rapidly developing "nice" Python bindings to C lib
                'using `cffi`')
 classifiers = [
     'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-    'Programming Language :: Python :: 2',
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.4',
-    'Programming Language :: Python :: 3.5',
-    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
+    'Programming Language :: Python :: 3.15',
 ]
 
 # Load metadata from __about__.py
@@ -31,9 +30,6 @@ with open(about_path) as f:
 install_requires = [
     'cffi>=1.5',
     'pycparser',
-    'future',
-    'chainmap>=1.0.2;python_version<"3.3"',
-    'enum34>=1.0.4;python_version<"3.4"',
 ]
 
 
@@ -75,6 +71,7 @@ if __name__ == '__main__':
         long_description = '\n'.join(open(readme_path).read().splitlines()[2:]),
         url = about['__url__'],
         license = about['__license__'],
+        python_requires = '>=3.13',
         classifiers = classifiers,
         install_requires = install_requires,
         cmdclass={'install': install, 'sdist': sdist, 'develop': develop},
